@@ -33,8 +33,12 @@ export async function register(req: Request, res: Response) {
       token,
       user: { id: user.id, name: user.name, email: user.email, school: user.school },
     });
-  } catch (err) {
-    res.status(500).json({ message: "Registration failed", error: (err as Error).message });
+  } catch (err: any) {
+    console.error("[register]", err);
+    const message = err?.name === "ValidationError"
+      ? Object.values(err.errors).map((e: any) => e.message).join(", ")
+      : "Registration failed";
+    res.status(err?.name === "ValidationError" ? 400 : 500).json({ message });
   }
 }
 
@@ -56,7 +60,8 @@ export async function login(req: Request, res: Response) {
       user: { id: user.id, name: user.name, email: user.email, school: user.school },
     });
   } catch (err) {
-    res.status(500).json({ message: "Login failed", error: (err as Error).message });
+    console.error("[login]", err);
+    res.status(500).json({ message: "Login failed" });
   }
 }
 

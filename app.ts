@@ -11,7 +11,8 @@ import reportRoutes from "./src/routes/report.route";
 
 export const app = express();
 
-app.use(cors({ origin: config.CLIENT_URL, credentials: true }));
+const allowedOrigins = [config.CLIENT_URL, "http://localhost:3000", "http://localhost:3001"].filter(Boolean);
+app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 // Raw body for Paystack webhook signature verification
 app.use(
