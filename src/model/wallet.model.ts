@@ -19,7 +19,7 @@ const walletSchema = new Schema<IWallet>(
     user: { type: Schema.Types.ObjectId, ref: "User", unique: true, required: true },
     balance: { type: Number, default: 0 },
   },
-  { timestamps: true }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
 const walletTransactionSchema = new Schema<IWalletTransaction>(
@@ -31,7 +31,7 @@ const walletTransactionSchema = new Schema<IWalletTransaction>(
     reference: { type: String },
     date: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
 walletTransactionSchema.index({ user: 1, date: -1 });

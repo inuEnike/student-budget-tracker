@@ -18,7 +18,7 @@ const budgetSchema = new Schema<IBudget>(
     month: { type: String, required: true },
     alertSent: { type: Boolean, default: false },
   },
-  { timestamps: true }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
 budgetSchema.index({ user: 1, category: 1, month: 1 }, { unique: true });

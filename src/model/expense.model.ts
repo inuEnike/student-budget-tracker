@@ -16,7 +16,7 @@ const expenseSchema = new Schema<IExpense>(
     note: { type: String, default: "" },
     date: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
 expenseSchema.index({ user: 1, date: -1 });
