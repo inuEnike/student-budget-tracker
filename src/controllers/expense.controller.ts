@@ -10,7 +10,14 @@ async function checkAndAlertBudget(userId: string, category: string) {
   const budget = await Budget.findOne({ user: userId, category, month });
   if (!budget || budget.alertSent) return;
 
-  const pct = Math.round((budget.spent / budget.limit) * 100);
+  const start = new Date(`${month}-01`);
+  const end = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+  const [agg] = await Expense.aggregate([
+    { $match: { user: userId, category, date: { $gte: start, $lt: end } } },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
+  ]);
+  const spent = agg?.total ?? 0;
+  const pct = Math.round((spent / budget.limit) * 100);
   if (pct < 80) return;
 
   const user = await User.findById(userId);
@@ -20,7 +27,7 @@ async function checkAndAlertBudget(userId: string, category: string) {
     email: user.email,
     name: user.name,
     category,
-    spent: budget.spent,
+    spent,
     limit: budget.limit,
     percentage: pct,
   }).catch(() => {});
@@ -40,15 +47,7 @@ export async function createExpense(req: AuthRequest, res: Response) {
       date: date ? new Date(date) : new Date(),
     });
 
-    // Update budget spent for the expense's month
-    const month = (expense.date as Date).toISOString().slice(0, 7);
-    const budget = await Budget.findOne({ user: req.userId, category, month });
-    if (budget) {
-      budget.spent += amount;
-      await budget.save();
-      checkAndAlertBudget(req.userId!, category).catch(() => {});
-    }
-
+    checkAndAlertBudget(req.userId!, category).catch(() => {});
     res.status(201).json(expense);
   } catch (err) {
     res.status(500).json({ message: (err as Error).message });
@@ -104,14 +103,6 @@ export async function deleteExpense(req: AuthRequest, res: Response) {
   try {
     const expense = await Expense.findOneAndDelete({ _id: req.params.id, user: req.userId });
     if (!expense) { res.status(404).json({ message: "Expense not found" }); return; }
-
-    // Reverse the budget spent amount
-    const month = (expense.date as Date).toISOString().slice(0, 7);
-    await Budget.findOneAndUpdate(
-      { user: req.userId, category: expense.category, month },
-      { $inc: { spent: -expense.amount } }
-    );
-
     res.json({ message: "Deleted" });
   } catch (err) {
     res.status(500).json({ message: (err as Error).message });
