@@ -11,8 +11,27 @@ import reportRoutes from "./src/routes/report.route";
 
 export const app = express();
 
-const allowedOrigins = [config.CLIENT_URL, "http://localhost:3000", "http://localhost:3001"].filter(Boolean);
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+// CLIENT_URL may be a single URL or a comma-separated list of allowed origins.
+const allowedOrigins = [
+  ...(config.CLIENT_URL?.split(",").map(s => s.trim()) ?? []),
+  "http://localhost:3000",
+  "http://localhost:3001",
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow non-browser clients (curl, server-to-server) with no Origin header
+      if (!origin) return callback(null, true);
+      // Explicit allow-list, plus any Vercel deployment (*.vercel.app)
+      if (allowedOrigins.includes(origin) || /\.vercel\.app$/.test(new URL(origin).hostname)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Origin ${origin} not allowed by CORS`));
+    },
+    credentials: true,
+  })
+);
 
 // Raw body for Paystack webhook signature verification
 app.use(
